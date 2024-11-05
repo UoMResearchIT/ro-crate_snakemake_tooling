@@ -1,0 +1,17 @@
+.idea/
+*.pyc
+__pycache__
+*.swp
+.nfs*
+*.sqlite
+*.touch
+.coverage
+
+tmp/
+.snakemake
+_*_venv*/
+doc/*.ps
+doc/*.pdf
+reports/*.pdf
+/toolbox*/wheels/
+
