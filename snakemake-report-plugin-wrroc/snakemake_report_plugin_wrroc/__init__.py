@@ -54,18 +54,32 @@ class Reporter(ReporterBase):
         # for attributes of the base class.
         # In particular, the settings of above ReportSettings class are accessible via
         # self.settings.
-        self.outdir = "ro-crate_out"
+        self.outdir = "ro-crate_out_copymetadata"
         self.excludelist = excludelist
         self.excludelist.append(self.outdir)
         # Load the existing Workflow RO-Crate
-        self.crate = ROCrate(source='./', exclude=self.excludelist)
+        self.old_crate = ROCrate(source='./')
+        self.crate = ROCrate()
 
     def render(self):
         # Render the report, using attributes of the base class.
 
-        # Remove any publication date from the root dataset of the original RO-Crate
-        if 'datePublished' in self.crate.root_dataset:
-            self.crate.root_dataset.__delitem__('datePublished')
+        # copy across files and data structure.
+        # NOTE: we have to use the add_dataset and add_file commands,
+        #       *not* the plain add command (as for the contextual entity),
+        #       or the library will not load the files contained within
+        #       the dataset directories.
+        for entity in self.old_crate.data_entities:
+            if 'Dataset' in entity.type:
+                self.crate.add_dataset(source=entity.id, dest_path=entity.id, 
+                                       properties=entity.properties())
+            elif 'File' in entity.type:
+                self.crate.add_file(source=entity.id, dest_path=entity.id,
+                                    properties=entity.properties())
+        
+        # copy desired metadata from old crate
+        for entity in self.old_crate.contextual_entities:
+            self.crate.add(entity)
 
 
         # Provenance Crate - add snakemake version
