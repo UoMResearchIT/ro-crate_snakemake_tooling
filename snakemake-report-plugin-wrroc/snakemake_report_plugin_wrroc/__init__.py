@@ -202,10 +202,16 @@ class Reporter(ReporterBase):
                 logger.warning(f"Conformance warning: {prob}")
             logger.warning(f"Continuing despite len(desirable_problems) warnings.")
 
+    def create_rulegraph(self):
         # images/rulegraph.svg should be something we can auto-generate. self.dag has methods dot()
         # and rule_dot() which can make the graph for us, but it still needs converting to SVG.
-        if not os.path.exists("image/rulegraph.svg"):
+        # TODO: Replace hardcoded file paths with path provided to function
+        #       (this will need to match the path given to the RO-Crate generator too)
 
+        if os.path.exists("image/rulegraph.svg"):
+                return True
+
+        else:
             logger.warning("Auto generating 'image/rulegraph.svg'")
             try:
                 os.makedirs("image", exist_ok=True)
@@ -225,9 +231,13 @@ class Reporter(ReporterBase):
             except CalledProcessError as e:
                 logger.error(str(e.stderr).rstrip())
                 logger.error("The 'dot' program returned the above error attempting to convert the rulegraph.")
+                return False
             except FileNotFoundError as e:
                 logger.error(str(e))
                 logger.error("The 'dot' program was not found. Unable to auto-convert the rulegraph.")
+                return False
+            else:
+                return True
 
     def render(self):
         try:
@@ -277,9 +287,11 @@ class Reporter(ReporterBase):
         if old_crate.name:
             crate.name = old_crate.name
 
-        # check that a workflow diagram is listed, and add if not
-        if 'image' not in crate.mainEntity.properties():
-            graph = crate.add_file(source='image/rulegraph.svg', dest_path='image/rulegraph.svg', 
+        # check that a workflow diagram is listed,
+        # if not we will check for it at 'image/rulegraph.svg',
+        # creating it if it does not already exist
+        if 'image' not in crate.mainEntity.properties() and self.create_rulegraph():
+            graph = crate.add_file(source='image/rulegraph.svg', dest_path='image/rulegraph.svg',
                                properties={'@type':['File','ImageObject']})
             crate.mainEntity.append_to('image',graph)
 
