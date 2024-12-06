@@ -108,16 +108,8 @@ class Reporter(ReporterBase):
         # TODO - do we need CODE_OF_CONDUCT.md and CONTRIBUTING.md too? I'm making these
         # warnings just now.
 
-        # Evidence of Git repo. This is probably not the best way to check but we'd like to know
-        # the remote URL
-        if not os.path.exists(".git/config"):
-            if os.path.exists("../.git/config"):
-                # We are within a GIT repo but not at the top level, so:
-                if not os.path.exists("workflowhub.yml"):
-                    errors.append("Since your workflow is in a subdirectory of your GIT repo,"
-                                  " you must include a 'workflowhub.yml' file.")
-            else:
-                errors.append("No .git/config file found. Is the code under source control?")
+        # TODO - do we need the remote URL for a Workflow Run Crate? Or is this only a
+        # nice to have? I've moved this check to warnings for now.
 
         # We need a README.md
         if not os.path.exists("README.md"):
@@ -158,6 +150,17 @@ class Reporter(ReporterBase):
         """Things that *should* be in the submission but are not essential.
         """
         errors = []
+
+        # Evidence of Git repo. This is probably not the best way to check but we'd like to know
+        # the remote URL
+        if not os.path.exists(".git/config"):
+            if os.path.exists("../.git/config"):
+                # We are within a GIT repo but not at the top level, so:
+                if not os.path.exists("workflowhub.yml"):
+                    errors.append("Since your workflow is in a subdirectory of your GIT repo,"
+                                  " you must include a 'workflowhub.yml' file.")
+            else:
+                errors.append("No .git/config file found. Is the code under source control?")
 
         # WorkflowHub says the tests should be under "tests" but Snakemake says they should
         # be under ".tests". Can we be opinionated about it?
