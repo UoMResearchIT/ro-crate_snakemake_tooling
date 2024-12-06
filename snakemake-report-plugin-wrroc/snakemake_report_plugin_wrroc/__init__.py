@@ -239,21 +239,11 @@ class Reporter(ReporterBase):
             else:
                 return True
 
-    def render(self):
-        try:
-            self.try_render()
-        except Exception as e:
-            # Catch all exceptions and turn them into error messages.
-            logger.error(e)
-
-
-    def try_render(self):
-        """Generate the crate, using the ROCrate library.
+    def copy_old_crate_data(self):
         """
-        logger.info(f"Excludelist: {self.excludelist}")
-
-        self.conformance_check()
-
+        This copies the metadata from the original Workflow RO-Crate to make
+        the basis of the new Workflow Run RO-Crate.
+        """
         crate = self.crate
         old_crate = self.old_crate
 
@@ -286,6 +276,35 @@ class Reporter(ReporterBase):
             crate.isBasedOn = old_crate.isBasedOn
         if old_crate.name:
             crate.name = old_crate.name
+
+    def create_base_crate_from_scratch(self):
+        """
+        Function for creating the base Workflow Run RO-Crate from scratch.
+        """
+        raise RuntimeError(f"Exiting because we cannot yet create an RO-Crate from scratch")
+
+    def render(self):
+        try:
+            self.try_render()
+        except Exception as e:
+            # Catch all exceptions and turn them into error messages.
+            logger.error(e)
+
+    def try_render(self):
+        """Generate the crate, using the ROCrate library.
+        """
+        logger.info(f"Excludelist: {self.excludelist}")
+
+        self.conformance_check()
+
+        # Copy information from the original Workflow RO-Crate, if it exists
+        # TODO: Otherwise create the base of our Workflow Run RO-Crate from scratch
+        if self.old_crate:
+            self.copy_old_crate_data()
+        else:
+            self.create_base_crate_from_scratch()
+
+        crate = self.crate
 
         # check that a workflow diagram is listed,
         # if not we will check for it at 'image/rulegraph.svg',
