@@ -60,6 +60,43 @@ class ReportSettings(ReportSettingsBase):
         }
     )
 
+    user_orcid: str = field(
+        default=None,
+        metadata={
+            "help": "Workflow user ORCID",
+            "env_var": False,
+            "required": False,
+        },
+    )
+
+    user_name: str = field(
+        default=None,
+        metadata={
+            "help": "Workflow user name",
+            "env_var": False,
+            "required": False,
+        },
+    )
+
+    user_email: str = field(
+        default=None,
+        metadata={
+            "help": "Workflow user email",
+            "env_var": False,
+            "required": False,
+        },
+    )
+
+    user_affiliation: str = field(
+        default=None,
+        metadata={
+            "help": "Workflow user affiliation",
+            "env_var": False,
+            "required": False,
+        },
+    )
+
+
 
 # Required:
 # Implementation of your reporter
@@ -79,8 +116,16 @@ class Reporter(ReporterBase):
         # Add user settings
         if self.settings.exclude:
             self.excludelist.extend(self.settings.exclude.split(','))
-
         self.conformance_force = self.settings.force
+        
+        # Create User Information
+        self.user_id_order = ['ORCID', 'email', 'name']
+        self.user_properties = ['name', 'affiliation', 'email']
+        self.user = {}
+        if self.settings.user_orcid: self.user['ORCID'] = self.settings.user_orcid
+        if self.settings.user_name: self.user['name'] = self.settings.user_name
+        if self.settings.user_email: self.user['email'] = self.settings.user_email
+        if self.settings.user_affiliation: self.user['affiliation'] = self.settings.user_affiliation
 
         # Load the existing Workflow RO-Crate
         try:
@@ -283,6 +328,31 @@ class Reporter(ReporterBase):
         """
         raise RuntimeError(f"Exiting because we cannot yet create an RO-Crate from scratch")
 
+    def create_user_entry(self):
+        """
+        Create user entry for RO-Crate, using wrroc executor inputs
+        """
+        id_order = self.user_id_order
+        user_properties = self.user_properties
+        crate = self.crate
+
+        person_properties = {}
+        person_properties['@id'] = 'ANONYMOUS'
+        person_properties['name'] = 'ANONYMOUS'
+        for id_string in id_order:
+            if id_string in self.user:
+                person_properties["@id"] = self.user[id_string]
+                break
+
+        for user_string in user_properties:
+            if user_string in self.user: person_properties[user_string] = self.user[user_string]
+
+        agent = crate.add(Person(crate,
+                                identifier=person_properties["@id"],
+                                properties=person_properties))
+
+        return(agent)
+
     def render(self):
         try:
             self.try_render()
@@ -321,26 +391,26 @@ class Reporter(ReporterBase):
                 entity['version'] = snakemake.__version__.split("+")[0]
         
         # Provenance Crate - record execution of workflow as a CreateAction object
-        instruments = {}
-        for entity in crate.data_entities:
-            if 'ComputationalWorkflow' in entity.type:
-                instruments["@id"] = entity.id
         workflow_run_properties = {
-            #"@id":"FIXME-add-workflow-run-properties-id",
+            "@id":"FIXME-add-workflow-run-properties-id",
             "@type":"CreateAction",
             "name":"Snakemake workflow run (FIXME)",
             "endTime":"FIXME date",
-            #"instrument":instruments,
             #"subjectOf":{"@id":"FIXME creative work (workflow?)"},
             "object":["FIXME inputs"],
             "result":["FIXME outputs"]
         }
+        instruments = {}
+        for entity in crate.data_entities:
+            if 'ComputationalWorkflow' in entity.type:
+                instruments["@id"] = entity.id
         if '@id' in instruments:
             workflow_run_properties['instruments'] = instruments
-        logger.info(workflow_run_properties)
         workflow_run = crate.add(
-            ContextEntity(crate, properties=workflow_run_properties)
+            ContextEntity(crate, identifier=workflow_run_properties["@id"],
+                          properties=workflow_run_properties)
         )
+        logger.info(workflow_run_properties)
 
         # Provenance Run Crate (individual step information)
 
@@ -354,16 +424,7 @@ class Reporter(ReporterBase):
             #print("ROCrate date published: " + str(self.crate.datePublished.date()))
 
         # Add Person running workflow (agent)
-        person_properties = {
-            #"@id": "FIXME-ORCID?",
-            "givenName": "FIXME",
-            "familyName": "FIXME",
-            "affiliation": "FIXME"
-        }
-        agent = crate.add(Person(crate,
-                                "FIXME-ORCID?",
-                                properties=person_properties))
-        workflow_run.append_to( "agent", [agent] )
+        workflow_run.append_to( "agent", [self.create_user_entry()] )
         
         
         # Reference CreateAction in the root Dataset
