@@ -13,6 +13,7 @@ from snakemake_interface_report_plugins.settings import ReportSettingsBase
 
 from rocrate.rocrate import ROCrate
 from rocrate.model import ContextEntity, Person
+import re
 
 # Optional:
 # Define additional settings for your reporter.
@@ -122,7 +123,7 @@ class Reporter(ReporterBase):
         self.user_id_order = ['ORCID', 'email', 'name']
         self.user_properties = ['name', 'affiliation', 'email']
         self.user = {}
-        if self.settings.user_orcid: self.user['ORCID'] = self.settings.user_orcid
+        if self.settings.user_orcid and self.clean_orcid(): self.user['ORCID'] = self.clean_orcid()
         if self.settings.user_name: self.user['name'] = self.settings.user_name
         if self.settings.user_email: self.user['email'] = self.settings.user_email
         if self.settings.user_affiliation: self.user['affiliation'] = self.settings.user_affiliation
@@ -136,6 +137,27 @@ class Reporter(ReporterBase):
         # Create a new crate for output
         self.crate = ROCrate(exclude=self.excludelist)
 
+    def clean_orcid(self):
+        """
+        Ensure that any provided ORCID follows correct format.
+        Either:
+        0000-0000-0000-0000
+        or:
+        https://orcid.org/0000-0000-0000-0000
+        """
+        orcid = self.settings.user_orcid
+
+        web_pattern = re.compile(r'https://orcid.org/')
+        orcid_pattern = re.compile(r'\d\d\d\d-\d\d\d\d-\d\d\d\d-\d\d\d\d')
+
+        if web_pattern.search(orcid) and orcid_pattern.search(orcid) and \
+            web_pattern.search(orcid).span() == (0, 18) and orcid_pattern.search(orcid).span() == (18, 37):
+            return(orcid)
+        elif orcid_pattern.match(orcid):
+            return(f'https://orcid.org/{orcid}')
+        else:
+            logger.warning(f"{orcid} is not a valid ORCID identity")
+            return(None)
 
     def check_essential_files(self):
         """Check for the presence of essential files.
