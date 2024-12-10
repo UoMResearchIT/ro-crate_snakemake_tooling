@@ -375,6 +375,36 @@ class Reporter(ReporterBase):
 
         return(agent)
 
+    def record_workflow_properties(self):
+        """
+        Record the workflow properties, following guidelines here: https://www.researchobject.org/workflow-run-crate/profiles/process_run_crate/
+        """
+        crate = self.crate
+
+        workflow_run_properties = {
+            "@id":"FIXME-add-workflow-run-properties-id",
+            "@type":"CreateAction",
+            "name":"FIXME (SHOULD) Snakemake workflow run",
+            "description":"FIXME (SHOULD) Details of the execution. Free format, for info only",
+            "endTime":"FIXME (SHOULD) date",
+            "startTime":"FIXME (MAY) date",
+            #"subjectOf":{"@id":"FIXME creative work (workflow?)"},
+            "object":["FIXME (MAY) inputs"],
+            "result":["FIXME (SHOULD) outputs"],
+            "actionStatus":"FIXME (MAY): SHOULD be CompletedActionStatus if successful, or FailedActionStatus if not"
+        }
+        # record the workflows listed in the RO-Crate as the instrument of this workflow run
+        instruments = {}
+        for entity in crate.data_entities:
+            if 'ComputationalWorkflow' in entity.type:
+                instruments["@id"] = entity.id
+        if '@id' in instruments:
+            workflow_run_properties['instruments'] = instruments
+
+
+        return(workflow_run_properties)
+
+
     def render(self):
         try:
             self.try_render()
@@ -413,24 +443,7 @@ class Reporter(ReporterBase):
                 entity['version'] = snakemake.__version__.split("+")[0]
         
         # Provenance Crate - record execution of workflow as a CreateAction object
-        workflow_run_properties = {
-            "@id":"FIXME-add-workflow-run-properties-id",
-            "@type":"CreateAction",
-            "name":"FIXME (SHOULD) Snakemake workflow run",
-            "description":"FIXME (SHOULD) Details of the execution. Free format, for info only",
-            "endTime":"FIXME (SHOULD) date",
-            "startTime":"FIXME (MAY) date",
-            #"subjectOf":{"@id":"FIXME creative work (workflow?)"},
-            "object":["FIXME (MAY) inputs"],
-            "result":["FIXME (SHOULD) outputs"],
-            "actionStatus":"FIXME (MAY): SHOULD be CompletedActionStatus if successful, or FailedActionStatus if not"
-        }
-        instruments = {}
-        for entity in crate.data_entities:
-            if 'ComputationalWorkflow' in entity.type:
-                instruments["@id"] = entity.id
-        if '@id' in instruments:
-            workflow_run_properties['instruments'] = instruments
+        workflow_run_properties = self.record_workflow_properties()
         workflow_run = crate.add(
             ContextEntity(crate, identifier=workflow_run_properties["@id"],
                           properties=workflow_run_properties)
