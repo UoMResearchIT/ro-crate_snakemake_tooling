@@ -416,11 +416,14 @@ class Reporter(ReporterBase):
         workflow_run_properties = {
             "@id":"FIXME-add-workflow-run-properties-id",
             "@type":"CreateAction",
-            "name":"Snakemake workflow run (FIXME)",
-            "endTime":"FIXME date",
+            "name":"FIXME (SHOULD) Snakemake workflow run",
+            "description":"FIXME (SHOULD) Details of the execution. Free format, for info only",
+            "endTime":"FIXME (SHOULD) date",
+            "startTime":"FIXME (MAY) date",
             #"subjectOf":{"@id":"FIXME creative work (workflow?)"},
-            "object":["FIXME inputs"],
-            "result":["FIXME outputs"]
+            "object":["FIXME (MAY) inputs"],
+            "result":["FIXME (SHOULD) outputs"],
+            "actionStatus":"FIXME (MAY): SHOULD be CompletedActionStatus if successful, or FailedActionStatus if not"
         }
         instruments = {}
         for entity in crate.data_entities:
