@@ -375,19 +375,36 @@ class Reporter(ReporterBase):
 
         return(agent)
 
+    def get_starttime_and_endtime(self):
+        """
+        Obtain:
+         - the latest job endtime, as a stand-in for the full workflow endTime
+         - the first job starttime, as a stand-in for the full workflow startTime
+        """
+        endTimeArray = []
+        startTimeArray = []
+        for job in self.jobs:
+            endTimeArray.append(job.endtime)
+            startTimeArray.append(job.starttime)
+        return(min(startTimeArray), max(endTimeArray))
+
+
+
     def record_workflow_run_properties(self):
         """
         Record the workflow run properties, following guidelines here: https://www.researchobject.org/workflow-run-crate/profiles/process_run_crate/
         """
         crate = self.crate
 
+        startTime, endTime = self.get_starttime_and_endtime()
+
         workflow_run_properties = {
             "@id":"FIXME-add-workflow-run-properties-id",
             "@type":"CreateAction",
             "name":"FIXME (SHOULD) Snakemake workflow run",
             "description":"FIXME (SHOULD) Details of the execution. Free format, for info only",
-            "endTime":"FIXME (SHOULD) date",
-            "startTime":"FIXME (MAY) date",
+            "endTime":endTime,
+            "startTime":startTime,
             #"subjectOf":{"@id":"FIXME creative work (workflow?)"},
             "object":["FIXME (MAY) inputs"],
             "result":["FIXME (SHOULD) outputs"],
