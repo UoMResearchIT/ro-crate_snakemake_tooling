@@ -375,9 +375,9 @@ class Reporter(ReporterBase):
 
         return(agent)
 
-    def record_workflow_properties(self):
+    def record_workflow_run_properties(self):
         """
-        Record the workflow properties, following guidelines here: https://www.researchobject.org/workflow-run-crate/profiles/process_run_crate/
+        Record the workflow run properties, following guidelines here: https://www.researchobject.org/workflow-run-crate/profiles/process_run_crate/
         """
         crate = self.crate
 
@@ -443,7 +443,7 @@ class Reporter(ReporterBase):
                 entity['version'] = snakemake.__version__.split("+")[0]
         
         # Provenance Crate - record execution of workflow as a CreateAction object
-        workflow_run_properties = self.record_workflow_properties()
+        workflow_run_properties = self.record_workflow_run_properties()
         workflow_run = crate.add(
             ContextEntity(crate, identifier=workflow_run_properties["@id"],
                           properties=workflow_run_properties)
