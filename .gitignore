@@ -14,4 +14,4 @@ doc/*.ps
 doc/*.pdf
 reports/*.pdf
 /toolbox*/wheels/
-
+dist/

@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Optional
 
 import snakemake
@@ -61,6 +62,15 @@ class ReportSettings(ReportSettingsBase):
         }
     )
 
+    crate: Optional[str] = field(
+        default=None,
+        metadata={
+            "help": "RO-Crate directory. If this is different from the workflow folder, everything needed for a valid RO-Crate (workflow, config, resources, results) will be copied into the RO-Crate. Otherwise the ro-crate-metadata.json will be created and placed in the workflow directory.",
+            "env_var": False,
+            "required": False,
+        }
+    )
+
     user_orcid: str = field(
         default=None,
         metadata={
@@ -114,6 +124,10 @@ class Reporter(ReporterBase):
         self.excludelist = list(excludelist)
         self.excludelist.append(self.outdir)
 
+        if(self.settings.crate):
+            # TODO check if this directory is valid and writable
+            self.outdir = self.settings.crate
+
         # Add user settings
         if self.settings.exclude:
             self.excludelist.extend(self.settings.exclude.split(','))
@@ -158,6 +172,57 @@ class Reporter(ReporterBase):
         else:
             logger.warning(f"{orcid} is not a valid ORCID identity")
             return(None)
+
+    @staticmethod
+    def set_property(entity, property, value):
+    
+        if not property:
+            logger.warning(f"property=None in set_property")
+            return
+
+        if not value:
+            logger.warning(f"value=None in set_property")
+            return
+        
+        entity[property] = value
+
+    def get_workflow_license(self):
+        """
+        Check workflow directory for a license file.
+        If no license file can be found, check --report-wrroc-workflow-license option.
+        If both license sources aren't specified, return None.
+        """
+#        # List possible license file names and extensions
+#        license_variants = [
+#            "license*",
+#            "License*",
+#            "LICENSE*",
+#            "licence*",
+#            "Licence*",
+#            "LICENCE*",
+#        ]
+#        licenses = []  # licenses found
+#
+#        # Iterate over the variants and check if a license file exists in the directory
+#        for variant in license_variants:
+#            # Use glob to match files with any extension
+#            matching_files = glob.glob(os.path.join(self.repo_clone, variant))
+#            if matching_files:
+#                licenses.extend(matching_files)
+#
+#        license_file = Path(licenses[0]) if len(licenses) != 0 else None
+#        if license_file is None:
+#            no_license = True
+#        else:
+#            no_license = not license_file.exists()
+#
+#        if no_license:
+#            pass
+#        else:
+#            logger.info("Writing license")
+#            shutil.copy(license_file, self.dest_path)
+#        return no_license
+
 
     def check_essential_files(self):
         """Check for the presence of essential files.
@@ -348,7 +413,44 @@ class Reporter(ReporterBase):
         """
         Function for creating the base Workflow Run RO-Crate from scratch.
         """
-        raise RuntimeError(f"Exiting because we cannot yet create an RO-Crate from scratch")
+        main_snakefile = os.path.relpath(self.dag.workflow.main_snakefile)
+        main_snakefile_path = Path(main_snakefile)
+        # TODO cannot set exclude list for make_workflow_rocrate
+        # Change to make_workflow_rocrate when exclude is implemented
+        # self.crate = ROCrate.make_workflow_rocrate(main_snakefile, "Snakemake", include_files=[], fetch_remote=False)
+        #license = 
+
+        description = self.workflow_description
+
+        self.create_root_data_entity(name="FIXME", description=description, license="FIXME")
+
+        self.crate.add_workflow(main_snakefile_path, main_snakefile_path, fetch_remote=False, main=True, lang="Snakemake", gen_cwl=False)
+        self.crate.metadata.extra_contexts.append("https://w3id.org/ro/terms/workflow-run/context")
+
+    def create_root_data_entity(self, name=None, description=None, datePublished=None, license=None):
+        """
+        Create the root data entity and set at least the required properties
+        """
+
+        # Set the conformsTo statement for the root Dataset.
+        # Note that this will replace any pre-existing conformsTo information
+        self.crate.root_dataset["conformsTo"] = [
+                    {"@id": "https://w3id.org/ro/wfrun/process/0.1"},
+                    {"@id": "https://w3id.org/ro/wfrun/workflow/0.5"},
+                    {"@id": "https://w3id.org/workflowhub/workflow-ro-crate/1.0"}
+                ]
+
+        # Set the required properties for the root Dataset
+        if name:
+            Reporter.set_property(self.crate.root_dataset, "name", name)
+        if description:
+            Reporter.set_property(self.crate.root_dataset, "description", description)
+        if datePublished:
+            Reporter.set_property(self.crate.root_dataset, "datePublished", datePublished)
+
+        #TODO implement or use existing function for setting proper license
+        if license:
+            Reporter.set_property(self.crate.root_dataset, "license", license)
 
     def create_user_entry(self):
         """
@@ -411,12 +513,12 @@ class Reporter(ReporterBase):
             "actionStatus":"FIXME (MAY): SHOULD be CompletedActionStatus if successful, or FailedActionStatus if not"
         }
         # record the workflows listed in the RO-Crate as the instrument of this workflow run
-        instruments = {}
+        instrument = {}
         for entity in crate.data_entities:
             if 'ComputationalWorkflow' in entity.type:
-                instruments["@id"] = entity.id
-        if '@id' in instruments:
-            workflow_run_properties['instruments'] = instruments
+                instrument["@id"] = entity.id
+        if '@id' in instrument:
+            workflow_run_properties['instrument'] = instrument
 
 
         return(workflow_run_properties)
