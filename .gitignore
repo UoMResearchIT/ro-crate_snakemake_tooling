@@ -15,3 +15,7 @@ doc/*.pdf
 reports/*.pdf
 /toolbox*/wheels/
 dist/
+/results/*
+snakemake-report-plugin-wrroc/tests/test_workflow/results/
+snakemake-report-plugin-wrroc/tests/test_workflow/logs
+snakemake-report-plugin-wrroc/tests/test_workflow/image/

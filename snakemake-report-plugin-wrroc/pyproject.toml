@@ -16,3 +16,8 @@ python = "^3.12"
 snakemake-interface-common = "^1.17.2"
 snakemake-interface-report-plugins = "^1.0.0"
 rocrate = "^0.11.0"
+
+[tool.poetry.group.test.dependencies]
+roc-validator = "^0.6.2"
+snakemake = "^8.20.0"
+
